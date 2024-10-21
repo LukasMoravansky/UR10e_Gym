@@ -76,6 +76,14 @@ namespace ur_kinematics
                 new double[4]{0,0,0,0},
                 new double[4]{0,0,0,0}
             };
+            //double[][] sysRot_matrix = new double[3][]
+            //{
+            //    new double[3]{ Math.Cos(Math.PI / 2), -Math.Sin(Math.PI / 2), 0},
+            //    new double[3]{ Math.Sin(Math.PI / 2), Math.Cos(Math.PI / 2), 0},
+            //    new double[3]{ 0, 0, 1}
+            //};
+
+
             double[][] Rx = new double[3][]
             {
                 new double[3]{ Math.Cos(in_vector[3]), -Math.Sin(in_vector[3]), 0},
@@ -84,7 +92,7 @@ namespace ur_kinematics
             };
             double[][] Ry = new double[3][]
             {
-                new double[3]{ Math.Cos(in_vector[4]), 0, Math.Sin(in_vector[4])},
+                new double[3]{ Math.Cos(in_vector[4]), 0, Math.Sin(in_vector[4]) },
                 new double[3]{ 0, 1, 0},
                 new double[3]{ -Math.Sin(in_vector[4]), 0, Math.Cos(in_vector[4]) }
             };
@@ -96,8 +104,8 @@ namespace ur_kinematics
             };
 
             var Rzy = matrixM.MultiplyMatrices(Rz, Ry);
-            double[][] Rot_matrix = matrixM.MultiplyMatrices(Rzy, Rx);
 
+            double[][] Rot_matrix = matrixM.MultiplyMatrices(Rzy, Rx);
             out_transform[0][0] = Rot_matrix[0][0];
             out_transform[0][1] = Rot_matrix[0][1];
             out_transform[0][2] = Rot_matrix[0][2];
@@ -196,9 +204,9 @@ namespace ur_kinematics
 
         public double[][] inverse_kin(double[] endPoint)
         {
-            endPoint[3] = endPoint[3] * Math.PI / 180;
-            endPoint[4] = endPoint[4] * Math.PI / 180;
-            endPoint[5] = endPoint[5] * Math.PI / 180;
+            endPoint[3] = endPoint[3];
+            endPoint[4] = endPoint[4];
+            endPoint[5] = endPoint[5];
 
             double[][] jointAngles = new double[theta.Length][];
 
