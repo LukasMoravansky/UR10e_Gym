@@ -86,9 +86,9 @@ namespace ur_kinematics
 
             double[][] Rx = new double[3][]
             {
-                new double[3]{ Math.Cos(in_vector[3]), -Math.Sin(in_vector[3]), 0},
-                new double[3]{ Math.Sin(in_vector[3]), Math.Cos(in_vector[3]), 0},
-                new double[3]{ 0, 0, 1}
+                new double[3]{ 1, 0, 0},
+                new double[3]{0, Math.Cos(in_vector[3]), -Math.Sin(in_vector[3])},
+                new double[3]{0, Math.Sin(in_vector[3]), Math.Cos(in_vector[3])}
             };
             double[][] Ry = new double[3][]
             {
@@ -104,8 +104,8 @@ namespace ur_kinematics
             };
 
             var Rzy = matrixM.MultiplyMatrices(Rz, Ry);
-
             double[][] Rot_matrix = matrixM.MultiplyMatrices(Rzy, Rx);
+
             out_transform[0][0] = Rot_matrix[0][0];
             out_transform[0][1] = Rot_matrix[0][1];
             out_transform[0][2] = Rot_matrix[0][2];
@@ -139,12 +139,6 @@ namespace ur_kinematics
         }
 
 
-
-
-
-
-
-
         private double[] get_pose_vector(double[][] homog_t)
         {
             double rot_y = Math.Atan2(Math.Sqrt(Math.Pow(homog_t[2][1], 2) + Math.Pow(homog_t[2][0], 2)), -homog_t[2][0]);
@@ -160,9 +154,6 @@ namespace ur_kinematics
                 rot_z * 180 / Math.PI
             };        
         }
-
-
-
 
 
         public double[] forward_kin(double[] jointsRot_deg)
@@ -204,12 +195,7 @@ namespace ur_kinematics
 
         public double[][] inverse_kin(double[] endPoint)
         {
-            endPoint[3] = endPoint[3];
-            endPoint[4] = endPoint[4];
-            endPoint[5] = endPoint[5];
-
             double[][] jointAngles = new double[theta.Length][];
-
             double[][] endPoint_transform = new double[theta.Length][];
 
             endPoint_transform = get_homog_t(endPoint);
@@ -220,8 +206,8 @@ namespace ur_kinematics
 
             double[] th12 = new double[]
             {
-                (-x6 + Math.Sqrt(y6 * y6 + x6 * x6 - d6 * d6)) / (d6 - y6),
-                (-x6 - Math.Sqrt(y6 * y6 + x6 * x6 - d6 * d6)) / (d6 - y6)
+                (-x6 + Math.Sqrt(Math.Pow(y6, 2) + Math.Pow(x6, 2) - Math.Pow(d6, 2))) / (d6 - y6),
+                (-x6 - Math.Sqrt(Math.Pow(y6, 2) + Math.Pow(x6, 2) - Math.Pow(d6, 2))) / (d6 - y6)
             };
 
             double[] theta1 = new double[]
@@ -284,10 +270,10 @@ namespace ur_kinematics
 
             double[] th23 = new double[]
             {
-                (-F_1 + Math.Sqrt(E_1 * E_1 + F_1 * F_1 - G_1 * G_1)) / (G_1 - E_1),
-                (-F_1 - Math.Sqrt(E_1 * E_1 + F_1 * F_1 - G_1 * G_1)) / (G_1 - E_1),
-                (-F_2 + Math.Sqrt(E_2 * E_2 + F_2 * F_2 - G_2 * G_2)) / (G_2 - E_2),
-                (-F_2 - Math.Sqrt(E_2 * E_2 + F_2 * F_2 - G_2 * G_2)) / (G_2 - E_2)
+                (-F_1 + Math.Sqrt(Math.Pow(E_1, 2) + Math.Pow(F_1, 2) - Math.Pow(G_1, 2))) / (G_1 - E_1),
+                (-F_1 - Math.Sqrt(Math.Pow(E_1, 2) + Math.Pow(F_1, 2) - Math.Pow(G_1, 2))) / (G_1 - E_1),
+                (-F_2 + Math.Sqrt(Math.Pow(E_2, 2) + Math.Pow(F_2, 2) - Math.Pow(G_2, 2))) / (G_2 - E_2),
+                (-F_2 - Math.Sqrt(Math.Pow(E_2, 2) + Math.Pow(F_2, 2) - Math.Pow(G_2, 2))) / (G_2 - E_2)
             };
 
 

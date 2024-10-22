@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
@@ -23,7 +24,9 @@ public class Joint_1 : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        float Joint_Angle =  Base_IK_Script.Joints_Angles[0];
+        print(Base_IK_Script.Joints_Angles[0]);
+        float Joint_Angle = Base_IK_Script.Joints_Angles[0];
         This_Object_Body.SetDriveTarget(Joint_Axis , Joint_Angle);
+        print(Joint_Angle);
     }
 }
