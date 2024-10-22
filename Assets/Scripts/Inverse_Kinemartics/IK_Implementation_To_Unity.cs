@@ -33,13 +33,12 @@ public class IK_David : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        print(Target_Effector.transform.position);
         // Fill up positions
         Temp_coordinates[0] = Target_Effector.transform.position.x;
         Temp_coordinates[1] = Target_Effector.transform.position.y;
         Temp_coordinates[2] = Target_Effector.transform.position.z;
         // Fill up rotations
-        Temp_coordinates[3] = -Target_Effector.transform.rotation.eulerAngles.x * Mathf.Deg2Rad; 
+        Temp_coordinates[3] = Target_Effector.transform.rotation.eulerAngles.x * Mathf.Deg2Rad; 
         Temp_coordinates[4] = Target_Effector.transform.rotation.eulerAngles.y * Mathf.Deg2Rad; 
         Temp_coordinates[5] = Target_Effector.transform.rotation.eulerAngles.z * Mathf.Deg2Rad; 
 
@@ -62,8 +61,11 @@ public class IK_David : MonoBehaviour
 
         for (int i = 0; i <= 5 ; i++)
         {
-            // Takes first solution (first column of Theta[][])
-            Joints_Angles[i] = (float)Theta[i][0];
+            float multiplicative = 1.0f;
+            if (i == 1 || i == 2 || i == 3)
+                multiplicative = -1.0f;
+
+            Joints_Angles[i] = 3.14f + multiplicative * (float)Theta[i][0];
             Joints_Angles[i] = Joints_Angles[i] * Mathf.Rad2Deg;
             //Joints_Angles[i] *= -1.0f;
         }

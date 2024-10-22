@@ -76,19 +76,19 @@ namespace ur_kinematics
                 new double[4]{0,0,0,0},
                 new double[4]{0,0,0,0}
             };
-            //double[][] sysRot_matrix = new double[3][]
-            //{
-            //    new double[3]{ Math.Cos(Math.PI / 2), -Math.Sin(Math.PI / 2), 0},
-            //    new double[3]{ Math.Sin(Math.PI / 2), Math.Cos(Math.PI / 2), 0},
-            //    new double[3]{ 0, 0, 1}
-            //};
 
+            double[][] basis_switch = new double[3][] 
+            {
+                new double[3]{ 1, 0, 0},
+                new double[3]{0, 0, -1},
+                new double[3]{0, 1, 0}
+            };
 
             double[][] Rx = new double[3][]
             {
                 new double[3]{ 1, 0, 0},
-                new double[3]{0, Math.Cos(in_vector[3]), -Math.Sin(in_vector[3])},
-                new double[3]{0, Math.Sin(in_vector[3]), Math.Cos(in_vector[3])}
+                new double[3]{0, Math.Cos(in_vector[5]), -Math.Sin(in_vector[5])},
+                new double[3]{0, Math.Sin(in_vector[5]), Math.Cos(in_vector[5])}
             };
             double[][] Ry = new double[3][]
             {
@@ -105,6 +105,9 @@ namespace ur_kinematics
 
             var Rzy = matrixM.MultiplyMatrices(Rz, Ry);
             double[][] Rot_matrix = matrixM.MultiplyMatrices(Rzy, Rx);
+            var r_1 = matrixM.InvertMatrix(basis_switch);
+            var ra = matrixM.MultiplyMatrices(r_1, Rot_matrix);
+            Rot_matrix = matrixM.MultiplyMatrices(ra, basis_switch);
 
             out_transform[0][0] = Rot_matrix[0][0];
             out_transform[0][1] = Rot_matrix[0][1];
@@ -114,12 +117,12 @@ namespace ur_kinematics
             out_transform[1][0] = Rot_matrix[1][0];
             out_transform[1][1] = Rot_matrix[1][1];
             out_transform[1][2] = Rot_matrix[1][2];
-            out_transform[1][3] = in_vector[1];
+            out_transform[1][3] = -in_vector[2];
 
             out_transform[2][0] = Rot_matrix[2][0];
             out_transform[2][1] = Rot_matrix[2][1];
             out_transform[2][2] = Rot_matrix[2][2];
-            out_transform[2][3] = in_vector[2];
+            out_transform[2][3] = in_vector[1];
 
             out_transform[3][3] = 1.0;
 
@@ -131,9 +134,15 @@ namespace ur_kinematics
         {
             return new double[4][]
             {
+                //new double[] { Math.Cos(theta), -Math.Sin(theta) * Math.Cos(alpha), Math.Sin(theta) * Math.Sin(alpha), a * Math.Cos(theta) },
+                //new double[] { Math.Sin(theta), Math.Cos(theta) * Math.Cos(alpha), -Math.Cos(theta) * Math.Sin(alpha), a * Math.Sin(theta) },
+                //new double[] { 0, Math.Sin(alpha), Math.Cos(alpha), d },
+                //new double[] { 0, 0, 0, 1}
+
                 new double[] { Math.Cos(theta), -Math.Sin(theta) * Math.Cos(alpha), Math.Sin(theta) * Math.Sin(alpha), a * Math.Cos(theta) },
+
+                new double[] { 0, -Math.Sin(alpha), -Math.Cos(alpha), -d },
                 new double[] { Math.Sin(theta), Math.Cos(theta) * Math.Cos(alpha), -Math.Cos(theta) * Math.Sin(alpha), a * Math.Sin(theta) },
-                new double[] { 0, Math.Sin(alpha), Math.Cos(alpha), d },
                 new double[] { 0, 0, 0, 1}
             };
         }
@@ -197,8 +206,13 @@ namespace ur_kinematics
         {
             double[][] jointAngles = new double[theta.Length][];
             double[][] endPoint_transform = new double[theta.Length][];
+            double[][] Th0 = new double[3][];
 
             endPoint_transform = get_homog_t(endPoint);
+            Th0 = get_homog_t(new double[] { 0, 0, 0.187, -Math.PI / 2, -Math.PI / 2, 0 });
+
+            //endPoint_transform = matrixM.MultiplyMatrices(matrixM.InvertMatrix(Th0), endPoint_transform);
+
             var x6 = -endPoint_transform[0][3];
             var y6 = endPoint_transform[1][3];
             var d6 = d[3];
