@@ -27,7 +27,7 @@ public class IK_David : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        Robot_Kinematics = new robot_kinematics(RobotType.UR10e);
+        Robot_Kinematics = new robot_kinematics(RobotType.UR10e, coordinateSystem.xzy_L);
     }
 
     // Update is called once per frame
@@ -55,19 +55,14 @@ public class IK_David : MonoBehaviour
         }
         else
         {
-        Robot_Kinematics = new robot_kinematics(RobotType.UR10e);
+        Robot_Kinematics = new robot_kinematics(RobotType.UR10e, coordinateSystem.xzy_L);
         }
 
 
         for (int i = 0; i <= 5 ; i++)
         {
-            float multiplicative = 1.0f;
-            if (i == 1 || i == 2 || i == 3)
-                multiplicative = -1.0f;
-
-            Joints_Angles[i] = 3.14f + multiplicative * (float)Theta[i][0];
+            Joints_Angles[i] = Mathf.PI - (float)Theta[i][0];
             Joints_Angles[i] = Joints_Angles[i] * Mathf.Rad2Deg;
-            //Joints_Angles[i] *= -1.0f;
         }
 
     }

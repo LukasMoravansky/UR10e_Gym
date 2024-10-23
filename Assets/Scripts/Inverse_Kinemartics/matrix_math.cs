@@ -1,6 +1,8 @@
-﻿using System;
+﻿using mitoSoft.Matrices;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -163,5 +165,50 @@ namespace ur_kinematics
 
             return result;
         }
+        public double[] MultiplyMatrices(double[][] matrix, double[] vector)
+        {
+            if (matrix.Length != 3 || matrix[0].Length != 3 || vector.Length != 3)
+            {
+                throw new ArgumentException("Matrix must be 3x3 and vector must have 3 elements.");
+            }
+
+            // Resulting vector
+            double[] result = new double[3];
+
+            // Perform matrix-vector multiplication
+            for (int i = 0; i < 3; i++)
+            {
+                result[i] = 0;
+                for (int j = 0; j < 3; j++)
+                {
+                    result[i] += matrix[i][j] * vector[j];
+                }
+            }
+
+            return result;
+        }
+        public double[] MultiplyMatrices(double[] vector, double[][] matrix)
+        {
+            if (matrix.Length != 3 || matrix[0].Length != 3 || vector.Length != 3)
+            {
+                throw new ArgumentException("Matrix must be 3x3 and vector must have 3 elements.");
+            }
+
+            // Resulting vector (row vector)
+            double[] result = new double[3];
+
+            // Perform row vector-matrix multiplication
+            for (int j = 0; j < 3; j++)
+            {
+                result[j] = 0;
+                for (int i = 0; i < 3; i++)
+                {
+                    result[j] += vector[i] * matrix[i][j];
+                }
+            }
+
+            return result;
+        }
+
     }
 }

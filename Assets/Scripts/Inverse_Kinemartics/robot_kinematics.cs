@@ -18,6 +18,12 @@ namespace ur_kinematics
         UR10e
     }
 
+    public enum coordinateSystem
+    {
+        xyz,
+        xzy_L
+    }
+
     public class robot_kinematics
     {
 
@@ -25,6 +31,10 @@ namespace ur_kinematics
         private double[] alpha;
         private double[] a;
         private double[] d;
+        private string coordinate_sys = "";
+        double[][] R_matrix = new double[3][];
+
+
         private List<double[][]> t_matrices = new List<double[][]>();
         double[][] eye_matrix = new double[3][]
         {
@@ -46,8 +56,30 @@ namespace ur_kinematics
         };
         matrix_math matrixM;
 
-        public robot_kinematics(RobotType type)
+        public robot_kinematics(RobotType type, coordinateSystem coordinate_system)
         {
+            switch (coordinate_system)
+            {
+                case coordinateSystem.xzy_L:
+                    R_matrix = new double[3][]
+                    {
+                        //new double[3]{ 1, 0, 0},
+                        //new double[3]{0, 0, -1},
+                        //new double[3]{0, 1, 0}
+                        new double[3]{ 1, 0, 0},
+                        new double[3]{0, 0, 1},
+                        new double[3]{0, 1, 0}
+                    };
+                    break;
+                case coordinateSystem.xyz:
+                    R_matrix = new double[3][]
+                    {
+                        new double[3]{ 1, 0, 0},
+                        new double[3]{0, 1, 0},
+                        new double[3]{0, 0, 1}
+                    };
+                    break;
+            }
             switch (type)
             {
                 case RobotType.UR20:
@@ -61,7 +93,7 @@ namespace ur_kinematics
                     this.alpha = new double[6] { Math.PI / 2, 0, 0, Math.PI / 2, -Math.PI / 2, 0 };
                     this.a = new double[6] { 0, -0.6127, -0.57155, 0, 0, 0 };
                     this.d = new double[6] { 0.1807, 0, 0, 0.17415, 0.11985, 0.11655 };
-                break;
+                    break;
             }
 
             matrixM = new matrix_math();
@@ -75,13 +107,6 @@ namespace ur_kinematics
                 new double[4]{0,0,0,0},
                 new double[4]{0,0,0,0},
                 new double[4]{0,0,0,0}
-            };
-
-            double[][] basis_switch = new double[3][] 
-            {
-                new double[3]{ 1, 0, 0},
-                new double[3]{0, 0, -1},
-                new double[3]{0, 1, 0}
             };
 
             double[][] Rx = new double[3][]
@@ -105,98 +130,204 @@ namespace ur_kinematics
 
             var Rzy = matrixM.MultiplyMatrices(Rz, Ry);
             double[][] Rot_matrix = matrixM.MultiplyMatrices(Rzy, Rx);
-            var r_1 = matrixM.InvertMatrix(basis_switch);
-            var ra = matrixM.MultiplyMatrices(r_1, Rot_matrix);
-            Rot_matrix = matrixM.MultiplyMatrices(ra, basis_switch);
 
-            out_transform[0][0] = Rot_matrix[0][0];
-            out_transform[0][1] = Rot_matrix[0][1];
-            out_transform[0][2] = Rot_matrix[0][2];
-            out_transform[0][3] = in_vector[0];
+            ////Switch basis
+            //Rot_matrix = switch_basis(Rot_matrix);
 
-            out_transform[1][0] = Rot_matrix[1][0];
-            out_transform[1][1] = Rot_matrix[1][1];
-            out_transform[1][2] = Rot_matrix[1][2];
-            out_transform[1][3] = -in_vector[2];
+            //out_transform[0][0] = Rot_matrix[0][0];
+            //out_transform[0][1] = Rot_matrix[0][1];
+            //out_transform[0][2] = Rot_matrix[0][2];
+            //out_transform[0][3] = in_vector[0];
 
-            out_transform[2][0] = Rot_matrix[2][0];
-            out_transform[2][1] = Rot_matrix[2][1];
-            out_transform[2][2] = Rot_matrix[2][2];
-            out_transform[2][3] = in_vector[1];
+            //out_transform[1][0] = Rot_matrix[1][0];
+            //out_transform[1][1] = Rot_matrix[1][1];
+            //out_transform[1][2] = Rot_matrix[1][2];
+            //out_transform[1][3] = in_vector[2];
 
-            out_transform[3][3] = 1.0;
+            //out_transform[2][0] = Rot_matrix[2][0];
+            //out_transform[2][1] = Rot_matrix[2][1];
+            //out_transform[2][2] = Rot_matrix[2][2];
+            //out_transform[2][3] = in_vector[1];
+
+            //out_transform[3][3] = 1.0;
 
 
-            return out_transform;
+            //return out_transform;
+
+            var homog_t = new double[4][]
+            {
+                new double[4]{ Rot_matrix[0][0], Rot_matrix[0][1], Rot_matrix[0][2], in_vector[0] },
+                new double[4]{ Rot_matrix[1][0], Rot_matrix[1][1], Rot_matrix[1][2], in_vector[1] },
+                new double[4]{ Rot_matrix[2][0], Rot_matrix[2][1], Rot_matrix[2][2], in_vector[2] },
+                new double[4]{0, 0, 0, 1}
+            };
+
+            return switch_transform_basis(homog_t);
+
         }
 
-        double[][] DH_matrix(double theta, double alpha, double a, double d)
+        double[][] switch_basis(double[][] in_matrix)
         {
+            var r_1 = matrixM.InvertMatrix(R_matrix);
+            var ar = matrixM.MultiplyMatrices(in_matrix, R_matrix);
+            return matrixM.MultiplyMatrices(r_1, ar);
+        }
+
+        double[] switch_basis(double[] in_vector)
+        {
+            var r_1 = matrixM.InvertMatrix(R_matrix);
+            return matrixM.MultiplyMatrices(r_1, in_vector);
+        }
+
+        private double[][] switch_transform_basis(double[][] transform)
+        {
+            double[][] rot = new double[3][]
+            {
+                new double[3]{ transform[0][0], transform[0][1], transform[0][2] },
+                new double[3]{ transform[1][0], transform[1][1], transform[1][2] },
+                new double[3]{ transform[2][0], transform[2][1], transform[2][2] }
+            };
+            double[] trans = new double[3]
+            {
+                transform[0][3],
+                transform[1][3],
+                transform[2][3]
+            };
+            var transform_rot = switch_basis(rot); //matrix
+            var transform_trans = switch_basis(trans); //vector
+
             return new double[4][]
             {
-                //new double[] { Math.Cos(theta), -Math.Sin(theta) * Math.Cos(alpha), Math.Sin(theta) * Math.Sin(alpha), a * Math.Cos(theta) },
-                //new double[] { Math.Sin(theta), Math.Cos(theta) * Math.Cos(alpha), -Math.Cos(theta) * Math.Sin(alpha), a * Math.Sin(theta) },
-                //new double[] { 0, Math.Sin(alpha), Math.Cos(alpha), d },
-                //new double[] { 0, 0, 0, 1}
-
-                new double[] { Math.Cos(theta), -Math.Sin(theta) * Math.Cos(alpha), Math.Sin(theta) * Math.Sin(alpha), a * Math.Cos(theta) },
-
-                new double[] { 0, -Math.Sin(alpha), -Math.Cos(alpha), -d },
-                new double[] { Math.Sin(theta), Math.Cos(theta) * Math.Cos(alpha), -Math.Cos(theta) * Math.Sin(alpha), a * Math.Sin(theta) },
+                new double[] { transform_rot[0][0], transform_rot[0][1], transform_rot[0][2], transform_trans[0] },
+                new double[] { transform_rot[1][0], transform_rot[1][1], transform_rot[1][2], transform_trans[1] },
+                new double[] { transform_rot[2][0], transform_rot[2][1], transform_rot[2][2], transform_trans[2] },
                 new double[] { 0, 0, 0, 1}
             };
         }
-
 
         private double[] get_pose_vector(double[][] homog_t)
         {
             double rot_y = Math.Atan2(Math.Sqrt(Math.Pow(homog_t[2][1], 2) + Math.Pow(homog_t[2][0], 2)), -homog_t[2][0]);
             double rot_x = Math.Atan2(homog_t[0][0] / Math.Cos(rot_y), homog_t[1][0] / Math.Cos(rot_y));
             double rot_z = Math.Atan2(homog_t[2][2] / Math.Cos(rot_y), homog_t[2][1] / Math.Cos(rot_y));
-             return new double[]
-            {
-                homog_t[0][3], 
-                homog_t[1][3], 
-                homog_t[2][3], 
-                rot_x * 180 / Math.PI, 
-                rot_y * 180 / Math.PI, 
+            return new double[]
+           {
+                homog_t[0][3],
+                homog_t[1][3],
+                homog_t[2][3],
+                rot_x * 180 / Math.PI,
+                rot_y * 180 / Math.PI,
                 rot_z * 180 / Math.PI
-            };        
+           };
         }
+
 
 
         public double[] forward_kin(double[] jointsRot_deg)
         {
-            double[][] matA = DH_matrix((jointsRot_deg[0] * Math.PI / 180) + theta[0], alpha[0], a[0], d[0]);
+            //double[][] t01 = new double[4][]
+            //{
+            //    new double[] { Math.Cos(jointsRot_deg[0] * Math.PI / 180), -Math.Sin(jointsRot_deg[0] * Math.PI / 180), 0, 0 },
+            //    new double[] { Math.Sin(jointsRot_deg[0] * Math.PI / 180), Math.Cos(jointsRot_deg[0] * Math.PI / 180), 0, 0 },
+            //    new double[] { 0, 0, 1, 0, },
+            //    new double[] { 0, 0, 0, 1 }
+            //};
+            //double[][] t12 = new double[4][]
+            //{
+            //    new double[] { -Math.Sin(jointsRot_deg[1] * Math.PI / 180), -Math.Cos(jointsRot_deg[1] * Math.PI / 180), 0, 0 },
+            //    new double[] { 0, 0, -1, 0, },
+            //    new double[] { Math.Cos(jointsRot_deg[1] * Math.PI / 180), -Math.Sin(jointsRot_deg[1] * Math.PI / 180), 0, 0 },
+            //    new double[] { 0, 0, 0, 1 }
+            //};
+            //double[][] t23 = new double[4][]
+            //{
+            //    new double[] { Math.Cos(jointsRot_deg[2] * Math.PI / 180), -Math.Sin(jointsRot_deg[2] * Math.PI / 180), 0, a[1] },
+            //    new double[] { Math.Sin(jointsRot_deg[2] * Math.PI / 180), Math.Cos(jointsRot_deg[2] * Math.PI / 180), 0, 0 },
+            //    new double[] { 0, 0, 1, 0, },
+            //    new double[] { 0, 0, 0, 1 }
+            //};
+            //double[][] t34 = new double[4][]
+            //{
+            //    new double[] { Math.Sin(jointsRot_deg[3] * Math.PI / 180), Math.Cos(jointsRot_deg[3] * Math.PI / 180), 0, a[2] },
+            //    new double[] { -Math.Cos(jointsRot_deg[3] * Math.PI / 180), Math.Sin(jointsRot_deg[3] * Math.PI / 180), 0, 0 },
+            //    new double[] { 0, 0, 1, d[3] },
+            //    new double[] { 0, 0, 0, 1 }
+            //};
+            //double[][] t45 = new double[4][]
+            //{
+            //    new double[] { Math.Cos(jointsRot_deg[4] * Math.PI / 180), -Math.Sin(jointsRot_deg[4] * Math.PI / 180), 0, 0 },
+            //    new double[] { 0, 0, 1, d[4] },
+            //    new double[] { -Math.Sin(jointsRot_deg[4] * Math.PI / 180), -Math.Cos(jointsRot_deg[4] * Math.PI / 180), 0, 0 },
+            //    new double[] { 0, 0, 0, 1 }
+            //};
+            //double[][] t56 = new double[4][]
+            //{
+            //    new double[] { Math.Cos(jointsRot_deg[5] * Math.PI / 180), -Math.Sin(jointsRot_deg[5] * Math.PI / 180), 0, 0 },
+            //    new double[] { 0, 0, -1, 0 },
+            //    new double[] { Math.Sin(jointsRot_deg[5] * Math.PI / 180), Math.Cos(jointsRot_deg[5] * Math.PI / 180), 0, 0 },
+            //    new double[] { 0, 0, 0, 1 }
+            //};
 
-            for (int i = 1; i < theta.Length; i++)
+            //List<double[][]> transforms = new List<double[][]>();
+            //transforms.Add(t01);
+            //transforms.Add(t12);
+            //transforms.Add(t23);
+            //transforms.Add(t34);
+            //transforms.Add(t45);
+            //transforms.Add(t56);
+            //double[][] outMat = switch_transform_basis(transforms[0]);
+            //for (int i = 1; i < theta.Length; i++)
+            //{
+            //    outMat = matrixM.MultiplyMatrices(outMat, switch_transform_basis(transforms[i]));
+            //}
+
+            //return get_pose_vector(outMat);
+
+            double c1 = Math.Cos(jointsRot_deg[0] * Math.PI / 180);
+            double c2 = Math.Cos(jointsRot_deg[1] * Math.PI / 180);
+            double c3 = Math.Cos(jointsRot_deg[2] * Math.PI / 180);
+            double c4 = Math.Cos(jointsRot_deg[3] * Math.PI / 180);
+            double c5 = Math.Cos(jointsRot_deg[4] * Math.PI / 180);
+            double c6 = Math.Cos(jointsRot_deg[5] * Math.PI / 180);
+
+            double s1 = Math.Sin(jointsRot_deg[0] * Math.PI / 180);
+            double s2 = Math.Sin(jointsRot_deg[1] * Math.PI / 180);
+            double s3 = Math.Sin(jointsRot_deg[2] * Math.PI / 180);
+            double s4 = Math.Sin(jointsRot_deg[3] * Math.PI / 180);
+            double s5 = Math.Sin(jointsRot_deg[4] * Math.PI / 180);
+            double s6 = Math.Sin(jointsRot_deg[5] * Math.PI / 180);
+
+            double s23 = Math.Sin((jointsRot_deg[1] * Math.PI / 180) + (jointsRot_deg[2] * Math.PI / 180));
+            double c23 = Math.Cos((jointsRot_deg[1] * Math.PI / 180) + (jointsRot_deg[2] * Math.PI / 180));
+
+            double s234 = Math.Sin((jointsRot_deg[1] * Math.PI / 180) + (jointsRot_deg[2] * Math.PI / 180) + (jointsRot_deg[3] * Math.PI / 180));
+            double c234 = Math.Cos((jointsRot_deg[1] * Math.PI / 180) + (jointsRot_deg[2] * Math.PI / 180) + (jointsRot_deg[3] * Math.PI / 180));
+
+            var r11 = -s1 * s5 * c6 + c1 * (-s234 * s6 + c234 * c5 * c6);
+            var r21 = c1 * s5 * c6 + s1 * (-s234 * s6 + c234 * c5 * c6);
+            var r31 = c234 * s6 + s234 * c5 * c6;
+            var r12 = s1 * s5 * s6 - c1 * (s234 * c6 + c234 * c5 * s6);
+            var r22 = -c1 * s5 * s6 - s1 * (s234 * c6 + c234 * c5 * s6);
+            var r32 = c234 * c6 - s234 * c5 * s6;
+            var r13 = s1 * c5 + c1 * c234 * s5;
+            var r23 = -c1 * c5 + s1 * s234 * s5;
+            var r33 = s234 * s5;
+
+            var x = d[3] * s1 - c1 * (a[1] * s2 + a[2] * s23 + d[4] + s234);
+            var y = -d[3] * c1 - s1 * (a[1] * s2 + a[2] * s23 + d[4] * s234);
+            var z = a[1] * c2 + a[2] * c23 + d[4] * c234;
+
+            double[][] transform_matrix = new double[4][]
             {
-                double[][] matB = DH_matrix((jointsRot_deg[i] * Math.PI / 180) + theta[i], alpha[i], a[i], d[i]);
-
-                matA = matrixM.MultiplyMatrices(matA, matB);
-            }
-
-            return get_pose_vector(matA);
-        }
-
-        private double[][] getTranslation_homogT(double[][] homogT)
-        {
-            return new double[][]
-            {
-                new double[] { homogT[0][3] },
-                new double[] { homogT[1][3] },
-                new double[] { homogT[2][3] }
+                new double[] { r11, r12, r13, x },
+                new double[] { r21, r22, r23, y },
+                new double[] { r31, r32, r33, z },
+                new double[] { 0, 0, 0, 1 }
             };
-        }
 
-        private double[][] getRotation_homogT(double[][] homogT)
-        {
-            return new double[][]
-            {
-                new double[] { homogT[0][0], homogT[0][1], homogT[0][2] },
-                new double[] { homogT[1][0], homogT[1][1], homogT[1][2] },
-                new double[] { homogT[2][0], homogT[2][1], homogT[2][2] }
-            };
+            //return get_pose_vector(switch_transform_basis(transform_matrix));
+
+            return get_pose_vector(transform_matrix);
         }
 
 
@@ -209,9 +340,9 @@ namespace ur_kinematics
             double[][] Th0 = new double[3][];
 
             endPoint_transform = get_homog_t(endPoint);
-            Th0 = get_homog_t(new double[] { 0, 0, 0.187, -Math.PI / 2, -Math.PI / 2, 0 });
+            Th0 = get_homog_t(new double[] { 0, 0.187, 0, 0, 0, 0 });
 
-            //endPoint_transform = matrixM.MultiplyMatrices(matrixM.InvertMatrix(Th0), endPoint_transform);
+            endPoint_transform = matrixM.MultiplyMatrices(matrixM.InvertMatrix(Th0), endPoint_transform);
 
             var x6 = -endPoint_transform[0][3];
             var y6 = endPoint_transform[1][3];
@@ -355,3 +486,5 @@ namespace ur_kinematics
         }
     }
 }
+
+
